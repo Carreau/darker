@@ -125,12 +125,40 @@ def format_edited_parts(
                 # 10. A re-formatted Python file which produces an identical AST was
                 #     created successfully - write an updated file or print the diff
                 #     if there were any changes to the original
+                result_str = pyup(result_str, edited_lines, edited_linenums)
+
                 if result_str != worktree_content:
                     # `result_str` is just `chosen_lines` concatenated with newlines.
                     # We need both forms when showing diffs or modifying files.
                     # Pass them both on to avoid back-and-forth conversion.
-                    yield src, worktree_content, result_str, chosen_lines
+                    yield src, worktree_content, result_str, result_str.splitlines()
                 break
+
+
+def pyup(content, edited_lines, edited_linenums):
+
+    from pyupgrade import (
+        _fix_py2_compatible,
+        _fix_tokens,
+        _fix_percent_format,
+        _fix_py3_plus,
+        _fix_py36_plus,
+    )
+
+    min_version = (3, 6)
+    keep_mock = True
+    content = _fix_py2_compatible(content)
+    content = _fix_tokens(content, min_version)
+    content = _fix_percent_format(content)
+    content = _fix_py3_plus(content, min_version, keep_mock)
+    content = _fix_py36_plus(content)
+    content = content.splitlines()
+
+    pyup_opcodes = diff_and_get_opcodes(edited_lines, content)
+    pyupgrade_chunks = list(opcodes_to_chunks(pyup_opcodes, edited_lines, content))
+    pyup_chosen_lines: List[str] = list(choose_lines(pyupgrade_chunks, edited_linenums))
+    pyup_result_str = joinlines(pyup_chosen_lines)
+    return pyup_result_str
 
 
 def modify_file(path: Path, new_content: str) -> None:
