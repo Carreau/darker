@@ -31,5 +31,7 @@ jobs:
         pip install requests
         pip install -e . 
     - name: Run darker
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         darker -r HEAD~10 --diff
