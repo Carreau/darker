@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import os
 from difflib import unified_diff
 from pathlib import Path
 from typing import Generator, Iterable, List, Tuple
@@ -163,10 +164,14 @@ def modify_file(path: Path, new_content: str) -> None:
 def print_diff(path: Path, old_content: str, new_lines: List[str]) -> None:
     """Print ``black --diff`` style output for the changes"""
     relative_path = path.resolve().relative_to(Path.cwd()).as_posix()
+    print(old_content, new_lines, relative_path)
     diff = "\n".join(
         line.rstrip("\n")
         for line in unified_diff(
-            old_content.splitlines(), new_lines, relative_path, relative_path,
+            old_content.splitlines(),
+            new_lines,
+            relative_path,
+            relative_path,
         )
     )
 
@@ -181,6 +186,142 @@ def print_diff(path: Path, old_content: str, new_lines: List[str]) -> None:
             print(highlight(diff, DiffLexer(), TerminalFormatter()))
     else:
         print(diff)
+
+
+COMFORT_FADE = "application/vnd.github.comfort-fade-preview+json"
+
+
+def post_gh_suggestion(path, old_content: str, new_lines):
+    # assert (
+    #    os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+    # ), "This action runs only on pull request events."
+    github_token = os.environ.get("GITHUB_TOKEN", None)
+    import json
+
+    try:
+        with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+            event_data = json.load(f)
+        comment_url = event_data["pull_request"]["review_comments_url"]
+        commit_id = event_data["pull_request"]["head"]["sha"]
+        mock = False
+    except Exception:
+        comment_url = "Mock URL"
+        commit_id = "MOCK ID"
+        mock = True
+
+    changes = []
+    new_content = "\n".join(new_lines)
+    for action, x, y, z, t in diff_and_get_opcodes(old_content.splitlines(), new_lines):
+        sugg = ""
+        old_cont = "\n".join(old_content.splitlines()[x:y])
+        if action == "replace":
+            old_cont = "\n".join(old_content.splitlines()[x:y])
+            sugg = "\n" + "\n".join(new_lines[z:t])
+            start = x + 1
+            end = y
+        elif action == "insert":
+            old_cont = "\n".join(old_content.splitlines()[x - 1 : y])
+            sugg = "\n" + "\n".join(new_lines[z - 1 : t])
+            start = x
+            end = y
+        elif action == "delete":
+            continue
+        elif action == "equal":
+            continue
+        else:
+            raise ValueError(action)
+        body = f"""
+from {x} to {y} : {action}
+```suggestion{sugg}
+```
+should replace ({z}, {t}):
+```
+{old_cont}
+
+```
+<!-- darker-autoreformat-action -->
+            """
+        print(body)
+        if start == y:
+            print("!!! we have an equal ! {start=}, {end=} for {action}")
+        changes.append((path, start, end, body))
+    print(f"Will post about {len(changes)} changes (cutting to max 15 for now)")
+    changes = changes[:15]
+
+    def suggests(changes, head_sha, comment_url):
+        review_url = comment_url.rsplit("/", maxsplit=1)[0] + "/reviews"
+        import requests
+
+        def post(action, url, json, headers):
+            print("===========")
+            # print(action)
+            # print(url)
+            # print(json)
+            # print({k:v for k,v in headers.items() if k != 'authorization'})
+            print("===")
+            if not mock:
+                res = requests.post(url, json=json, headers=headers)
+                print("REPLY")
+                print(res.json())
+                print("REPLY END")
+                res.raise_for_status()
+            else:
+                print("no actual requests...")
+
+        comments = []
+        for path, start, end, body in changes:
+            data = {
+                "body": body,
+                # "commit_id": head_sha,
+                "path": path,
+                "line": end,
+                "side": "RIGHT",
+            }
+            if start != end:
+                print(f"{start=}, {end=}")
+                data.update(
+                    {
+                        "start_line": start,
+                        "start_side": "RIGHT",
+                    }
+                )
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": COMFORT_FADE,
+                }
+
+            else:
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": COMFORT_FADE,
+                    # "Accept": "application/vnd.github.v3.raw+json",
+                }
+            comments.append(data)
+            assert isinstance(headers, dict)
+            # post(
+            #    "POST",
+            #    comment_url,
+            #    json=data,
+            #    headers=headers
+            # )
+        review_data = {
+            "body": "This is an automated review from GitHub action that suggest changes to autoformat the code using Darker.",
+            "commit_id": head_sha,
+            "event": "REQUEST_CHANGES",
+            "comments": comments,
+        }
+        post(
+            "POST",
+            review_url,
+            json=review_data,
+            headers={
+                "authorization": f"Bearer {github_token}",
+                "Accept": COMFORT_FADE,
+                # "Accept": "application/vnd.github.v3.raw+json",
+            },
+        )
+
+    suggests(changes, commit_id, comment_url)
 
 
 def main(argv: List[str] = None) -> int:
@@ -231,7 +372,10 @@ def main(argv: List[str] = None) -> int:
     ):
         some_files_changed = True
         if args.diff:
-            print_diff(path, old_content, new_lines)
+            post_gh_suggestion(
+                str(path.relative_to(Path(os.getcwd()))), old_content, new_lines
+            )
+            # print_diff(path, old_content, new_lines)
         if not args.check and not args.diff:
             modify_file(path, new_content)
     return 1 if args.check and some_files_changed else 0
