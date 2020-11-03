@@ -189,27 +189,33 @@ COMFORT_FADE = "application/vnd.github.comfort-fade-preview+json"
 
 
 def post_gh_suggestion(path, old_content: str, new_lines):
-    assert (
-        os.environ["GITHUB_EVENT_NAME"] == "pull_request"
-    ), "This action runs only on pull request events."
-    github_token = os.environ["GITHUB_TOKEN"]
+    #assert (
+    #    os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+    #), "This action runs only on pull request events."
+    github_token = os.environ.get("GITHUB_TOKEN", None)
     import json
-
-    
-    with open(os.environ["GITHUB_EVENT_PATH"]) as f:
-        event_data = json.load(f)
-    comment_url = event_data["pull_request"]["review_comments_url"]
-    #print(json.dumps(event_data, indent=2))
-    commit_id = event_data["pull_request"]["head"]["sha"]
+    try:
+        with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+            event_data = json.load(f)
+        comment_url = event_data["pull_request"]["review_comments_url"]
+        #print(json.dumps(event_data, indent=2))
+        commit_id = event_data["pull_request"]["head"]["sha"]
+        mock = False
+    except Exception:
+        comment_url = "Mock URL"
+        #print(json.dumps(event_data, indent=2))
+        commit_id = "MOCK ID"
+        mock = True
 
 
     changes =[]
     new_content = '\n'.join(new_lines)
     for action, x,y,z,t in diff_and_get_opcodes(old_content.splitlines(), new_lines):
         sugg = ''
+        old_cont = '\n'.join(old_content.splitlines()[x:y])
         if action in ('replace', 'insert'):
-            sugg = "\n"+'\n'.join(new_lines[z:t])+''
-            x = x+1
+            sugg = "\n"+'\n'.join(new_lines[z:t])
+            #x = x+1
         elif action == 'delete':
             continue
             sugg = ''
@@ -218,10 +224,15 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         else: 
             raise ValueError(action)
         body = (f"""
-from {x} to {y} also {z}, {t}
+from {x} to {y} 
 ```suggestion{sugg}
 ```
+should replace ({z}, {t}):
+```
+{old_cont}
+```
             """)
+        print(body)
         changes.append((path, x, y, body))
     def suggests(changes, head_sha, comment_url):
         review_url = comment_url.rsplit('/', maxsplit=1)[0]+'/reviews'
@@ -233,11 +244,14 @@ from {x} to {y} also {z}, {t}
             print(json)
             print({k:v for k,v in headers.items() if k != 'authorization'})
             print('===')
-            res = requests.post(url, json=json, headers=headers)
-            print('REPLY')
-            print(res.json())
-            print('REPLY END')
-            res.raise_for_status()
+            if not mock:
+                res = requests.post(url, json=json, headers=headers)
+                print('REPLY')
+                print(res.json())
+                print('REPLY END')
+                res.raise_for_status()
+            else:
+                print('no actual requests...')
         comments = []
         for path, start, end, body in changes:
             data = {
