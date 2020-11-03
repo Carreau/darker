@@ -209,6 +209,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         sugg = ''
         if action in ('replace', 'insert'):
             sugg = "\n"+'\n'.join(new_lines[z:t])+''
+            x = x+1
         elif action == 'delete':
             continue
             sugg = ''
@@ -217,7 +218,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         else: 
             raise ValueError(action)
         body = (f"""
-from {x} to {y}        
+from {x} to {y} also {z}, {t}
 ```suggestion{sugg}
 ```
             """)
