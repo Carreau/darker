@@ -215,9 +215,9 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         else: 
             raise ValueError(action)
         body = (f"""
-    from {x} to {y}        
-    ```suggestion{sugg}
-    ```
+from {x} to {y}        
+```suggestion{sugg}
+```
             """)
         changes.append((path, x, y, body))
     def suggests(changes, head_sha, comment_url):
