@@ -232,7 +232,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
             res = requests.post(url, json=json, headers=header)
             res.raise_for_status()
         for path, start, end, body in changes:
-            if start + 1 != end:
+            if start + 1 != end and False:
                 data = {
                     "body": body,
                     "commit_id": head_sha,
