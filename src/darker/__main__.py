@@ -227,7 +227,8 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         c_is_darker = '<!-- darker-autoreformat-action -->' in comment['body']
         should_remove = (c_user=='github-actions[bot]' and (c_id==41898282) and c_is_darker)
         print(f"{c_user=}, {c_id=} , {c_is_darker=}, {should_remove=}" )
-        print('Would remove ', comment['url'])
+        print('removing... ', comment['url'])
+        requests.delete(comment['url'], headers=headers)
 
     changes = []
     new_content = "\n".join(new_lines)
