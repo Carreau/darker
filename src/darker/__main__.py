@@ -232,55 +232,35 @@ from {x} to {y}
             res = requests.post(url, json=json, headers=headers)
             res.raise_for_status()
         for path, start, end, body in changes:
+            data = {
+                "body": body,
+                "commit_id": head_sha,
+                "path": path,
+                "line": end,
+                "side": "RIGHT",
+            }
             if start + 1 != end and False:
-                data = {
-                    "body": body,
-                    "commit_id": head_sha,
-                    "path": path,
+                data.update({
                     "start_line": start + 1,
                     "start_side": "RIGHT",
-                    "line": end,
-                    "side": "RIGHT",
-                }
+                })
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": COMFORT_FADE,
+                },
 
-                try:
-                    post(
-                        "POST",
-                        comment_url,
-                        json=data,
-                        headers = {
-                            "authorization": f"Bearer {github_token}",
-                            "Accept": COMFORT_FADE,
-                        },
-                    )
-                except Exception:
-                    # likely unprecessable entity out of range
-                    raise
-                    pass
             else:
-                # we can't seem to do single line with COMFORT_FADE
-                data = {
-                    "body": body,
-                    "commit_id": head_sha,
-                    "path": path,
-                    "line": end,
-                    "side": "RIGHT",
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3.raw+json",
                 }
 
-                try:
-                    post(
-                        "POST",
-                        comment_url,
-                        json=data,
-                        headers = {
-                            "authorization": f"Bearer {github_token}",
-                            "Accept": "application/vnd.github.v3.raw+json",
-                        }
-                    )
-                except Exception:
-                    # likely unprecessable entity out of range
-                    raise
-                    pass
+            post(
+                "POST",
+                comment_url,
+                json=data,
+                headers=headers
+            )
     suggests(changes, commit_id, comment_url)
 
 
