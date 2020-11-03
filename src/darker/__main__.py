@@ -222,14 +222,14 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         changes.append((path, x, y, body))
     def suggests(changes, head_sha, comment_url):
         import requests
-        def post(action, url, json, header=None):
+        def post(action, url, json, headers=None):
             print('===========')
             print(action)
             print(url)
             print(json)
-            print({k:v for k,v in header.items() if k != 'authorization'})
+            print({k:v for k,v in headers.items() if k != 'authorization'})
             print('===')
-            res = requests.post(url, json=json, headers=header)
+            res = requests.post(url, json=json, headers=headers)
             res.raise_for_status()
         for path, start, end, body in changes:
             if start + 1 != end and False:
@@ -248,7 +248,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
                         "POST",
                         comment_url,
                         json=data,
-                        header = {
+                        headers = {
                             "authorization": f"Bearer {github_token}",
                             "Accept": COMFORT_FADE,
                         },
@@ -279,6 +279,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
                     )
                 except Exception:
                     # likely unprecessable entity out of range
+                    raise
                     pass
     suggests(changes, commit_id, comment_url)
 
