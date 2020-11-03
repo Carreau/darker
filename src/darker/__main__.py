@@ -310,7 +310,7 @@ should replace ({z}, {t}):
         review_data = {
             "body": "This is an automated review from GitHub action that suggest changes to autoformat the code using Darker.",
             "commit_id": head_sha,
-            "event": "REQUEST_CHANGES",
+            "event": "REQUEST_CHANGES" if comments else "APPROVE",
             "comments": comments,
         }
         post(
