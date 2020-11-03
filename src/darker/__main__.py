@@ -199,6 +199,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
     with open(os.environ["GITHUB_EVENT_PATH"]) as f:
         event_data = json.load(f)
     comment_url = event_data["pull_request"]["review_comments_url"]
+    print(json.dumps(event_data, indent=2))
     commit_id = event_data["pull_request"]["head"]["sha"]
 
 
