@@ -232,6 +232,9 @@ from {x} to {y}
             print({k:v for k,v in headers.items() if k != 'authorization'})
             print('===')
             res = requests.post(url, json=json, headers=headers)
+            print('REPLY')
+            print(res.json())
+            print('REPLY END')
             res.raise_for_status()
         for path, start, end, body in changes:
             data = {
