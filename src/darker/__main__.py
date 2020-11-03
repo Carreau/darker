@@ -255,7 +255,7 @@ from {x} to {y}
                     "authorization": f"Bearer {github_token}",
                     "Accept": "application/vnd.github.v3.raw+json",
                 }
-
+            assert isinstance(headers, dict)
             post(
                 "POST",
                 comment_url,
