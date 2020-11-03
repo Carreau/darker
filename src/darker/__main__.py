@@ -221,14 +221,15 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         data = requests.get(comment_url, headers=headers).json()
     print(f"Found {len(data)} comments")
     for comment in data:
-        c_user = comment['user']['login']
-        c_id = comment['user']['id']
-        c_is_darker = '<!-- darker-autoreformat-action -->' in comment['body']
-        should_remove = (c_user=='github-actions[bot]' and (c_id==41898282) and c_is_darker)
-        print(f"{c_user=}, {c_id=} , {c_is_darker=}, {should_remove=}" )
-        print('removing... ', comment['url'])
-        requests.delete(comment['url'], headers=headers)
-
+        c_user = comment["user"]["login"]
+        c_id = comment["user"]["id"]
+        c_is_darker = "<!-- darker-autoreformat-action -->" in comment["body"]
+        should_remove = (
+            c_user == "github-actions[bot]" and (c_id == 41898282) and c_is_darker
+        )
+        print(f"{c_user=}, {c_id=} , {c_is_darker=}, {should_remove=}")
+        print("removing... ", comment["url"])
+        requests.delete(comment["url"], headers=headers)
 
     changes = []
     new_content = "\n".join(new_lines)
@@ -284,7 +285,7 @@ should replace ({z}, {t}):
             print("REPLY END")
             res.raise_for_status()
         else:
-                print("no actual requests...")
+            print("no actual requests...")
 
     def suggests(changes, head_sha, comment_url):
         review_url = comment_url.rsplit("/", maxsplit=1)[0] + "/reviews"
@@ -317,7 +318,7 @@ should replace ({z}, {t}):
             "POST",
             review_url,
             json=review_data,
-            headers = headers,
+            headers=headers,
         )
 
     suggests(changes, commit_id, comment_url)
