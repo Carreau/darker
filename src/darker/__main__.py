@@ -191,12 +191,16 @@ def print_diff(path: Path, old_content: str, new_lines: List[str]) -> None:
 COMFORT_FADE = "application/vnd.github.comfort-fade-preview+json"
 
 
+
 def post_gh_suggestion(path, old_content: str, new_lines):
     # assert (
     #    os.environ["GITHUB_EVENT_NAME"] == "pull_request"
     # ), "This action runs only on pull request events."
     github_token = os.environ.get("GITHUB_TOKEN", None)
     import json
+    import requests
+
+    # maybe cleanup previous comments
 
     try:
         with open(os.environ["GITHUB_EVENT_PATH"]) as f:
@@ -208,6 +212,22 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         comment_url = "Mock URL"
         commit_id = "MOCK ID"
         mock = True
+    headers={
+        "authorization": f"Bearer {github_token}",
+        "Accept": COMFORT_FADE,
+        # "Accept": "application/vnd.github.v3.raw+json",
+    }
+    if not mock:
+        data = requests.get(comment_url, headers=headers).json()
+    
+    print(f"Found {len(data)} comments")
+    for comment in data:
+        c_user = comment['user']['login']
+        c_id = comment['user']['id']
+        c_is_darker = '<!-- darker-autoreformat-action -->' in comment['body']
+        should_remove = (c_user=='github-actions[bot]' and (c_id==41898282) and c_is_darker)
+        print(f"{c_user=}, {c_id=} , {c_is_darker=}, {should_remove=}" )
+        print('Would remove ', comment['url'])
 
     changes = []
     new_content = "\n".join(new_lines)
@@ -248,25 +268,25 @@ should replace ({z}, {t}):
     print(f"Will post about {len(changes)} changes (cutting to max 15 for now)")
     changes = changes[:15]
 
+
+    def post(action, url, json, headers):
+        print("===========")
+        # print(action)
+        # print(url)
+        # print(json)
+        # print({k:v for k,v in headers.items() if k != 'authorization'})
+        print("===")
+        if not mock:
+            res = requests.post(url, json=json, headers=headers)
+            print("REPLY")
+            print(res.json())
+            print("REPLY END")
+            res.raise_for_status()
+        else:
+                print("no actual requests...")
+
     def suggests(changes, head_sha, comment_url):
         review_url = comment_url.rsplit("/", maxsplit=1)[0] + "/reviews"
-        import requests
-
-        def post(action, url, json, headers):
-            print("===========")
-            # print(action)
-            # print(url)
-            # print(json)
-            # print({k:v for k,v in headers.items() if k != 'authorization'})
-            print("===")
-            if not mock:
-                res = requests.post(url, json=json, headers=headers)
-                print("REPLY")
-                print(res.json())
-                print("REPLY END")
-                res.raise_for_status()
-            else:
-                print("no actual requests...")
 
         comments = []
         for path, start, end, body in changes:
@@ -285,25 +305,7 @@ should replace ({z}, {t}):
                         "start_side": "RIGHT",
                     }
                 )
-                headers = {
-                    "authorization": f"Bearer {github_token}",
-                    "Accept": COMFORT_FADE,
-                }
-
-            else:
-                headers = {
-                    "authorization": f"Bearer {github_token}",
-                    "Accept": COMFORT_FADE,
-                    # "Accept": "application/vnd.github.v3.raw+json",
-                }
             comments.append(data)
-            assert isinstance(headers, dict)
-            # post(
-            #    "POST",
-            #    comment_url,
-            #    json=data,
-            #    headers=headers
-            # )
         review_data = {
             "body": "This is an automated review from GitHub action that suggest changes to autoformat the code using Darker.",
             "commit_id": head_sha,
@@ -314,11 +316,7 @@ should replace ({z}, {t}):
             "POST",
             review_url,
             json=review_data,
-            headers={
-                "authorization": f"Bearer {github_token}",
-                "Accept": COMFORT_FADE,
-                # "Accept": "application/vnd.github.v3.raw+json",
-            },
+            headers = headers,
         )
 
     suggests(changes, commit_id, comment_url)
