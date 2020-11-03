@@ -223,6 +223,7 @@ from {x} to {y}
             """)
         changes.append((path, x, y, body))
     def suggests(changes, head_sha, comment_url):
+        review_url = comment_url.rsplit('/', maxsplit=1)[0]+'/reviews'
         import requests
         def post(action, url, json, headers):
             print('===========')
@@ -236,6 +237,21 @@ from {x} to {y}
             print(res.json())
             print('REPLY END')
             res.raise_for_status()
+        review_data = {
+                "body": "this is a test review.",
+                "commit_id": head_sha,
+                "event": "REQUEST_CHANGES",
+                "comments" :[]
+            }
+        post(
+                "POST",
+                review_url,
+                json=review_data,
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3.raw+json",
+                }
+        )
         for path, start, end, body in changes:
             data = {
                 "body": body,
@@ -244,9 +260,10 @@ from {x} to {y}
                 "line": end,
                 "side": "RIGHT",
             }
-            if start + 1 != end:
+            if start != end:
+                print(f'{start=}, {end=}')
                 data.update({
-                    "start_line": start + 1,
+                    "start_line": start,
                     "start_side": "RIGHT",
                 })
                 headers = {
