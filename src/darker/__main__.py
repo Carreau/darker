@@ -212,14 +212,13 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         comment_url = "Mock URL"
         commit_id = "MOCK ID"
         mock = True
-    headers={
+    headers = {
         "authorization": f"Bearer {github_token}",
         "Accept": COMFORT_FADE,
         # "Accept": "application/vnd.github.v3.raw+json",
     }
     if not mock:
         data = requests.get(comment_url, headers=headers).json()
-    
     print(f"Found {len(data)} comments")
     for comment in data:
         c_user = comment['user']['login']
@@ -229,6 +228,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         print(f"{c_user=}, {c_id=} , {c_is_darker=}, {should_remove=}" )
         print('removing... ', comment['url'])
         requests.delete(comment['url'], headers=headers)
+
 
     changes = []
     new_content = "\n".join(new_lines)
