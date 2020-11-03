@@ -224,7 +224,7 @@ from {x} to {y}
         changes.append((path, x, y, body))
     def suggests(changes, head_sha, comment_url):
         import requests
-        def post(action, url, json, headers=None):
+        def post(action, url, json, headers):
             print('===========')
             print(action)
             print(url)
@@ -249,7 +249,7 @@ from {x} to {y}
                 headers = {
                     "authorization": f"Bearer {github_token}",
                     "Accept": COMFORT_FADE,
-                },
+                }
 
             else:
                 headers = {
