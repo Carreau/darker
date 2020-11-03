@@ -237,21 +237,7 @@ from {x} to {y}
             print(res.json())
             print('REPLY END')
             res.raise_for_status()
-        review_data = {
-                "body": "this is a test review.",
-                "commit_id": head_sha,
-                "event": "REQUEST_CHANGES",
-                "comments" :[]
-            }
-        post(
-                "POST",
-                review_url,
-                json=review_data,
-                headers = {
-                    "authorization": f"Bearer {github_token}",
-                    "Accept": "application/vnd.github.v3.raw+json",
-                }
-        )
+        comments = []
         for path, start, end, body in changes:
             data = {
                 "body": body,
@@ -276,13 +262,30 @@ from {x} to {y}
                     "authorization": f"Bearer {github_token}",
                     "Accept": "application/vnd.github.v3.raw+json",
                 }
+            comments.append(data)
             assert isinstance(headers, dict)
-            post(
+            #post(
+            #    "POST",
+            #    comment_url,
+            #    json=data,
+            #    headers=headers
+            #)
+        review_data = {
+                "body": "this is a test review.",
+                "commit_id": head_sha,
+                "event": "REQUEST_CHANGES",
+                "comments" : comments
+            }
+        post(
                 "POST",
-                comment_url,
-                json=data,
-                headers=headers
-            )
+                review_url,
+                json=review_data,
+                headers = {
+                    "authorization": f"Bearer {github_token}",
+                    "Accept": COMFORT_FADE,
+                    #"Accept": "application/vnd.github.v3.raw+json",
+                }
+        )
     suggests(changes, commit_id, comment_url)
 
 
