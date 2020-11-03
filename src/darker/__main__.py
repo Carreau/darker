@@ -209,6 +209,7 @@ def post_gh_suggestion(path, old_content: str, new_lines):
         if action in ('replace', 'insert'):
             sugg = "\n"+'\n'.join(new_lines[z:t])+''
         elif action == 'delete':
+            continue
             sugg = ''
         elif action == 'equal':
             continue
@@ -239,7 +240,7 @@ from {x} to {y}
                 "line": end,
                 "side": "RIGHT",
             }
-            if start + 1 != end and False:
+            if start + 1 != end:
                 data.update({
                     "start_line": start + 1,
                     "start_side": "RIGHT",
