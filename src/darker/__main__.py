@@ -241,7 +241,7 @@ from {x} to {y}
         for path, start, end, body in changes:
             data = {
                 "body": body,
-                "commit_id": head_sha,
+                #"commit_id": head_sha,
                 "path": path,
                 "line": end,
                 "side": "RIGHT",
